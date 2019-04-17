@@ -1,18 +1,18 @@
 # 3D PLFBS GPU
 
 Dependencies:
-Boost
-Cuda
+Boost,
+Cuda,
 TECIO - Tecplot Input/Output library https://github.com/su2code/SU2/tree/master/externals/tecio
 
 Set Up:
-Install Dependencies
-Modify Makefile provided to point to the correct librarys and sources
+Install Dependencies,
+Modify Makefile provided to point to the correct librarys and sources,
 Make
 
 Input: 
-User Defined XML file
-OpenFoam Mesh directory
+User Defined XML file,
+OpenFoam Mesh directory,
 Private message if required
 
 Main Modules:
