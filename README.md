@@ -15,7 +15,7 @@ Set Up:
 Input: 
 * User Defined XML file
 * OpenFoam Mesh directory
-Private message if required
+* Private message if required
 
 Main Modules:
 * The pre-processing takes place in the program.cpp file before calling the core GPU code. 
