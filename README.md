@@ -1,9 +1,11 @@
 # 3D PLFBS GPU
 
 Dependencies:
-	Boost,
-	Cuda,
-	TECIO - Tecplot Input/Output library https://github.com/su2code/SU2/tree/master/externals/tecio
+
+ Markup : * Bullet Boost
+ 	 * Bullet CUDA
+	  * Bullet TECIO - Tecplot Input/Output library https://github.com/su2code/SU2/tree/master/externals/tecio
+          	
 
 Set Up:
 	Install Dependencies,
