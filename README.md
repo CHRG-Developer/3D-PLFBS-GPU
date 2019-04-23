@@ -6,7 +6,11 @@ Dependencies:
  	 * Bullet CUDA
 	  * Bullet TECIO - Tecplot Input/Output library https://github.com/su2code/SU2/tree/master/externals/tecio
           	
-
+Markup : * Bullet list
+              * Nested bullet
+                  * Sub-nested bullet etc
+          * Bullet list item 2
+	  
 Set Up:
 	Install Dependencies,
 	Modify Makefile provided to point to the correct librarys and sources,
