@@ -2,9 +2,9 @@
 
 Dependencies:
 
-* Bullet Boost
-* Bullet CUDA
-* Bullet TECIO - Tecplot Input/Output library https://github.com/su2code/SU2/tree/master/externals/tecio
+* Boost
+* CUDA
+* TECIO - Tecplot Input/Output library https://github.com/su2code/SU2/tree/master/externals/tecio
           	
  
 Set Up:
