@@ -8,13 +8,13 @@ Dependencies:
           	
  
 Set Up:
-* Install Dependencies,
-* Modify Makefile provided to point to the correct librarys and sources,
+* Install Dependencies
+* Modify Makefile provided to point to the correct librarys and sources
 * Make
 
 Input: 
-* User Defined XML file,
-* OpenFoam Mesh directory,
+* User Defined XML file
+* OpenFoam Mesh directory
 Private message if required
 
 Main Modules:
