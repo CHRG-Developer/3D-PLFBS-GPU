@@ -60,10 +60,11 @@ void program::run(char* xml_input){
 
     copyfile(xml_input,globals.output_file);
 
-    remove_existing_files(globals);
+    remove_existing_files(globals); 
     Solution soln;
     Solution residual;
 	std::cout << "Importing Mesh" << endl;
+	//unstructured mesh
      if(globals.mesh_type ==3){
         unstructured_mesh uns_mesh(domain,globals);
         Boundary_Conditions bc(uns_mesh.get_num_bc());
@@ -81,14 +82,14 @@ void program::run(char* xml_input){
         if(globals.restart_analysis == "true"){
             soln.import(globals);
 
-        }else{
-                    soln.assign_pressure_gradient(initial_conds.rho_gradient,initial_conds.origin_loc,
+        }else{ //user defined initial solution
+                soln.assign_pressure_gradient(initial_conds.rho_gradient,initial_conds.origin_loc,
                                         initial_conds.rho_origin_mag,uns_mesh,globals);
                 soln.assign_velocity_gradient(initial_conds.vel_gradient,initial_conds.origin_loc,
                                         initial_conds.vel_origin_mag,uns_mesh,globals);
                 soln.set_average_rho(initial_conds.average_rho);
-
-        }
+	    }
+		//implement boundary conditions
 
         bc.assign_boundary_conditions(uns_mesh,u_bcs);
 		std::cout << "Running Solver" << endl;
@@ -102,7 +103,6 @@ void program::run(char* xml_input){
 
 		}
         
-
         soln.output(globals.output_file, globals, domain);
     //soln.output_centrelines(globals.output_file,globals,mesh);
     //post_processor.output_vtk_mesh(globals.output_file,globals,domain);

@@ -23,29 +23,10 @@ class gpu_solver
 public:
 	gpu_solver();
 	virtual ~gpu_solver();
-	void Uniform_Mesh_Solver(Mesh &Mesh, Solution &soln, Boundary_Conditions &bc,
-		external_forces &source, global_variables &globals, domain_geometry &domain,
-		initial_conditions &init_conds, quad_bcs_plus &quad_bcs_orig, int mg,
-		Solution &residual, int fmg, post_processing &pp);
-	void Unstructured_Mesh_Solver(Mesh &Mesh, Solution &soln, Boundary_Conditions &bc,
-		external_forces &source, global_variables &globals, domain_geometry &domain,
-		initial_conditions &init_conds, quad_bcs_plus &quad_bcs_orig, int mg,
-		Solution &residual, int fmg, post_processing &pp);
-	void Unstructured_Mesh_Solver_mk_ii(Mesh &Mesh, Solution &soln, Boundary_Conditions &bc,
-		external_forces &source, global_variables &globals, domain_geometry &domain,
-		initial_conditions &init_conds, quad_bcs_plus &quad_bcs_orig, int mg,
-		Solution &residual, int fmg, post_processing &pp);
-	void General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &soln, Boundary_Conditions &bc,
+		void General_Purpose_Solver(unstructured_mesh &Mesh, Solution &soln, Boundary_Conditions &bc,
 		external_forces &source, global_variables &globals, domain_geometry &domain,
 		initial_conditions &init_conds, unstructured_bcs &quad_bcs_orig, int mg,
 		Solution &residual, int fmg, post_processing &pp);
-
-
-	void multi_grid_agglomoration(Solution &residuals, Solution &soln,
-		int cycle_no, Mesh &fine_mesh, quad_bcs_plus &bcs,
-		initial_conditions &init_conds, int &mg, global_variables globals,
-		domain_geometry &fine_domain, Boundary_Conditions &fine_bc
-		, post_processing &pp);
 	void populate_e_alpha(std::vector<vector_var> &e_alpha, double * lattice_weight, double c, double PI, int k);
 	void inverse_weighted_distance_interpolation(double &u, double &v, double &rho, Boundary_Conditions &bcs,
 		Mesh &Mesh, domain_geometry &domain, Solution &soln
@@ -53,9 +34,6 @@ public:
 		std::vector<vector_var> &e_alpha, int j, std::vector<int> &cell_nodes);
 	void get_cell_nodes(std::vector<int> &cell_nodes, Boundary_Conditions &bcs, int neighbour,
 		Mesh &Mesh, int i, int j);
-	
-	
-
 	void find_real_time(double* delta_t_local, double* local_time, bool* calc_face,
 		unstructured_mesh &Mesh, bool* calc_cell);
 
@@ -95,12 +73,6 @@ private:
 	};
 
 
-
-	void truncate_flux(flux_var &flux);
-	void truncate_flux(double &val);
-
-	void get_gradients_weighted_average(gradients &grads, int i, int neighbour, double m1,
-		double m2, vector_var &u, vector_var &v, vector_var &w, vector_var &rho);
 
 	void cell_interface_initialiser(double &rho_interface, vector_var &rho_u_interface,
 		flux_var &x_flux, flux_var &y_flux);

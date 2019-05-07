@@ -2121,7 +2121,7 @@ void gpu_solver::populate_cfl_areas(Solution &cfl_areas, unstructured_mesh &Mesh
 
 
 
-void gpu_solver::General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &soln, Boundary_Conditions &bcs,
+void gpu_solver::General_Purpose_Solver(unstructured_mesh &Mesh, Solution &soln, Boundary_Conditions &bcs,
 	external_forces &source, global_variables &globals, domain_geometry &domain,
 	initial_conditions &init_conds, unstructured_bcs &quad_bcs_orig, int mg,
 	Solution &residual, int fmg, post_processing &pp)
@@ -2134,13 +2134,11 @@ void gpu_solver::General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &
 	Solution vortex_error(Mesh.get_total_cells());
 	Solution real_error(Mesh.get_total_cells());
 	Solution wall_shear_stress(Mesh.get_n_wall_cells());
-	gradients grads(Mesh.get_total_cells());
 	Solution cfl_areas(Mesh.get_total_cells());
-
-
-
+	gradients grads(Mesh.get_total_cells());
 	flux_var RK;
 
+	//solution based GPU variables
 	double4 *temp_soln , *soln_t0,* soln_t1;
 
 	//mesh related GPU variables
@@ -2190,13 +2188,14 @@ void gpu_solver::General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &
 	double * delta_t_local;
 	int *delta_t_frequency;
 
+	//assign memory allocations
+
 	delta_t_local = new double[Mesh.get_n_cells()];
 	if (delta_t_local == NULL) exit(1);
 	delta_t_frequency = new int[Mesh.get_n_cells()];
 	if (delta_t_frequency == NULL) exit(1);
 
-
-
+	//solution related allocations
 	temp_soln = new double4[Mesh.get_total_cells()];
 	if (temp_soln == NULL) exit(1);
 	soln_t0 = new double4[Mesh.get_total_cells()];
@@ -2209,7 +2208,7 @@ void gpu_solver::General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &
 	local_fneq = new double[Mesh.get_total_cells()];
 	if (local_fneq == NULL) exit(1);
 
-
+	//residuals related allocations
 	res_rho = new double[Mesh.get_n_cells()];
 	if (res_rho == NULL) exit(1);
 	res_u = new double[Mesh.get_n_cells()];
@@ -2255,8 +2254,6 @@ void gpu_solver::General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &
 	bcs_vel_type = new int[Mesh.get_num_bc()];
 	if (bcs_vel_type == NULL) exit(1);
 
-
-
 	//Gradient related allocations
 
 	RHS_arr = new double3[Mesh.get_n_cells()* 6];
@@ -2291,7 +2288,7 @@ void gpu_solver::General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &
 
 	double local_tolerance;
 
-
+	//host lattice wegihts
 	double* h_lattice_weight;
 	h_lattice_weight = new double[15];
 	if (h_lattice_weight == NULL) exit(1);
@@ -2338,7 +2335,7 @@ void gpu_solver::General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &
 
 	tecplot_output<double> tecplot;
 
-	///Initialisations
+	///Output related parameters and file locations
 
 	dt = domain.dt; // timestepping for streaming // non-dim equals 1
 	c = 1; // assume lattice spacing is equal to streaming timestep
@@ -2351,7 +2348,6 @@ void gpu_solver::General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &
 	output_dir = globals.output_file + "/error.txt";
 	decay_dir = globals.output_file + "/vortex_error.txt";
 	max_u_dir = globals.output_file + "/max_u.txt";
-	// error_output.open("/home/brendan/Dropbox/PhD/Test Cases/Couette Flow/error.txt", ios::out);
 	error_output.open(output_dir.c_str(), ios::out);
 	output_dir = globals.output_file + "/residual_log.txt";
 	debug_log.open(output_dir.c_str(), ios::out);
@@ -2360,18 +2356,16 @@ void gpu_solver::General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &
 	time = 0;
 	angular_freq = visc * pow(globals.womersley_no, 2) / pow(Mesh.get_Y() / 2, 2);
 	force = -init_conds.pressure_gradient;
-
 	time = 0;
-
 	td = 100000000000000000;
 
+	/// get LHD and RHS coefficients for Hybrid Least Squares Method
 	grads.pre_fill_LHS_and_RHS_matrix(bcs, Mesh, domain, soln, globals);
-
-
-
+	
+	// get cell areas for CFL calcs
 	populate_cfl_areas(cfl_areas, Mesh);
 
-
+	// debug output (optional)
 	debug_log << "t,rk,i,res_rho,res_u,res_v,res_w,x,y,z, dt,visc,rho,u,v,ux,uy,uz,vx,vy,vz" << endl;
 
 /// CUDA checks***********************************//////////////////////
@@ -2434,7 +2428,6 @@ void gpu_solver::General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &
 	checkCudaErrors(cudaMallocManaged(&surface_area, Mesh.get_n_faces() * sizeof(double)));
 	checkCudaErrors(cudaMallocManaged(&streaming_dt, Mesh.get_n_faces() * sizeof(double)));
 
-
 	checkCudaErrors(cudaMallocManaged(&cell_flux_arr, Mesh.get_n_faces() * sizeof(double4)));
 
 	checkCudaErrors(cudaMallocManaged(&res_rho, Mesh.get_total_cells() * sizeof(double)));
@@ -2467,14 +2460,13 @@ void gpu_solver::General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &
 	checkCudaErrors(cudaMallocManaged(&LHS_zy, Mesh.get_n_cells() * sizeof(double)));
 	checkCudaErrors(cudaMallocManaged(&LHS_zz, Mesh.get_n_cells() * sizeof(double)));
 
-
-	
-
+	// get lattice velocities and transfer to GPU
 	populate_e_alpha(e_alpha, h_lattice_weight, c, globals.PI, 15);
 	checkCudaErrors(cudaMemcpyToSymbol(lattice_weight, h_lattice_weight, 15 * sizeof(double)));
 
 	/// Sync before CUDA array used
 	cudaDeviceSynchronize();
+	//transfer CFL areas to device
 	populate_cfl_areas(d_cfl_areas, Mesh);
 
 
@@ -2517,23 +2509,10 @@ void gpu_solver::General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &
 		clone_a_to_b << < n_Cell_Blocks, blockSize >> > (Mesh.get_n_cells(), soln_t1, soln_t0);// soln_t0 holds macro variable solution at start of time step
 		post_kernel_checks();
 
-
-
-		//womersley flow peculiarities
-		if (globals.testcase == 4) {
-			wom_cos = cos(angular_freq * t * delta_t);
-			force = -init_conds.pressure_gradient * wom_cos;
-		}
-
 		//local timestepping calculation
 		get_cfl_device <<< n_Cell_Blocks, blockSize >>> (Mesh.get_n_cells(),  temp_soln, cell_volume, d_delta_t_local,  d_cfl_areas, globals.time_marching_step,
 			globals.max_velocity,globals.pre_conditioned_gamma, globals.visc, globals.gpu_time_stepping);
 		post_kernel_checks();
-
-		//get_cfl(delta_t, soln, Mesh, globals, delta_t_local, delta_t_frequency, cfl_areas);
-
-
-
 
 		for (int rk = 0; rk < rk4.timesteps; rk++) {
 
@@ -2542,7 +2521,7 @@ void gpu_solver::General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &
 			//update temp_soln boundary conditions
 			update_unstructured_bcs << < n_bc_Blocks, blockSize >> > (Mesh.get_num_bc(), Mesh.get_n_neighbours(), Mesh.get_n_cells(), mesh_owner, bcs_rho_type, bcs_vel_type, temp_soln, bcs_arr);
 
-			//set to zeros
+			//set residuals to zeros
 			fill_zero << < n_Cell_Blocks, blockSize >> > (Mesh.get_n_cells(), res_rho);
 			post_kernel_checks();
 			fill_zero << < n_Cell_Blocks, blockSize >> > (Mesh.get_n_cells(), res_u);
@@ -2552,8 +2531,6 @@ void gpu_solver::General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &
 			fill_zero << < n_Cell_Blocks, blockSize >> > (Mesh.get_n_cells(), res_w);
 			post_kernel_checks();
 
-
-		   // time2 = clock();
 			get_interior_gradients <<< n_Cell_Blocks, blockSize >>> ( Mesh.get_n_cells(), gradient_stencil, temp_soln,
 				RHS_arr,LHS_xx, LHS_xy, LHS_xz,LHS_yx, LHS_yy, LHS_yz,LHS_zx, LHS_zy, LHS_zz,
 				grad_rho_arr, grad_u_arr, grad_v_arr, grad_w_arr);
@@ -2566,37 +2543,14 @@ void gpu_solver::General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &
 				grad_rho_arr, grad_u_arr, grad_v_arr, grad_w_arr);
 			post_kernel_checks();
 
-			//time3 = clock();
-
-			//std::cout << "CPU Cycles Gradients:" << double(time3 - time2) << std::endl;
-			wall = 0;
-			// loop through each cell and exclude the ghost cells
-			//using n_cells here rather than total_cells
-
 			cudaDeviceSynchronize();
+			//get flux at each face
 			calc_face_flux << < n_face_Blocks, blockSize >> > (Mesh.get_n_faces(), temp_soln, cell_volume, surface_area,  mesh_owner,  mesh_neighbour,  cell_centroid, face_centroid,  face_normal,
 				streaming_dt, grad_rho_arr, grad_u_arr,  grad_v_arr, grad_w_arr, Mesh.get_n_cells(),  (1/ globals.pre_conditioned_gamma),  local_fneq, globals.visc,
 				res_rho, res_u,res_v,res_w,res_face,
 				bcs_rho_type, bcs_vel_type, bcs_arr,globals.PI);
 			post_kernel_checks();
 			cudaDeviceSynchronize();
-
-	/*		for (int i = 0; i < Mesh.get_n_cells(); i++) {
-
-				debug_log << t << ", " << rk << ", " << i << ", " << res_rho[i] << ", " <<
-					res_u[i] << ", " << res_v[i] << ", " << res_w[i]
-					<< ", " <<
-					Mesh.get_centroid_x(i) << " , " << Mesh.get_centroid_y(i) << "," << Mesh.get_centroid_z(i) << "," <<
-					delta_t_local[i] << " , " << local_fneq[i] << "," <<
-					soln.get_rho(i) << "," << soln.get_u(i) << " , " << soln.get_v(i) << " , " <<
-					grad_u_arr[i].x << " , " << grad_u_arr[i].y << " , " << grad_u_arr[i].z << " , " <<
-					grad_v_arr[i].x << " , " << grad_v_arr[i].y << " , " << grad_v_arr[i].z << " , " <<
-					grad_w_arr[i].x << " , " << grad_w_arr[i].y << "," << grad_w_arr[i].z
-
-					<< endl;
-
-			}*/
-
 
 			//Update  solutions  //update RK values
 
@@ -2605,9 +2559,7 @@ void gpu_solver::General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &
 			post_kernel_checks();
 
 		}
-
-
-
+		
 
 		//get square of residuals
 		square << < n_Cell_Blocks, blockSize >> > (Mesh.get_n_cells(), res_rho);
@@ -2623,17 +2575,12 @@ void gpu_solver::General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &
 		post_kernel_checks();
 		cudaDeviceSynchronize();
 		convergence_residual.reset();
+		//get L2 norm of the residual
 		convergence_residual.l2_norm_rms_moukallad(globals, res_rho_block, res_u_block, res_v_block, res_w_block, n_Cell_Blocks, Mesh.get_n_cells());
-
-/*
-		calc_total_residual << < n_Cell_Blocks, blockSize >> > (Mesh.get_n_cells(), convergence, res_rho, res_u, res_v, res_w);
-		post_kernel_checks();*/
-		/*check_error << < n_Cell_Blocks, blockSize >> > (Mesh.get_n_cells(), temp_soln);
-		post_kernel_checks();*/
-		//convergence_residual.ansys_5_iter_rms(t);
 
 		time = t * delta_t;
 
+		//output tecplot output and residuals every output step
 		if (mg == 0 && t%globals.output_step == 1) {
 
 			soln.clone(temp_soln);
@@ -2658,6 +2605,7 @@ void gpu_solver::General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &
 
 		}
 
+		//check for convergence
 		if (convergence_residual.max_error() < local_tolerance || time > td) {
 			if (mg == 0) {
 				soln.clone(temp_soln);
@@ -2673,10 +2621,8 @@ void gpu_solver::General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &
 				soln.update_unstructured_bcs(bcs, Mesh, domain, t);
 				grads.Get_LS_Gradients(bcs, Mesh, domain, soln, globals);
 				pp.cylinder_post_processing(Mesh, globals, grads, bcs, soln, domain, wall_shear_stress);
-				// pp.calc_vorticity(x_gradients,y_gradients);
-				  //pp.calc_streamfunction(Mesh,globals,bcs);
 				tecplot.tecplot_output_unstructured_soln(globals, Mesh, soln, bcs, time, pp, residual_worker, delta_t_local, local_fneq);
-				//soln.output_centrelines(globals.output_file,globals,Mesh,time);
+				
 			}
 			cudaProfilerStop();
 
@@ -2687,8 +2633,7 @@ void gpu_solver::General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &
 	}
 
 
-	//    pp.calc_vorticity(x_gradients,y_gradients);
-		//pp.calc_streamfunction(Mesh,globals,bcs);
+
 	cudaProfilerStop();
 	soln.clone(temp_soln);
 	cout << "out of time" << endl;
@@ -2700,7 +2645,7 @@ void gpu_solver::General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &
 	tecplot.tecplot_output_unstructured_soln(globals, Mesh, soln, bcs, time, pp, residual_worker, delta_t_local, local_fneq);
 
 
-
+	//no destruction of memory as end of programme
 
 }
 
