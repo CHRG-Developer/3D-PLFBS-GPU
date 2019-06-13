@@ -19,6 +19,8 @@ Input:
 
 Main Modules:
 * The pre-processing takes place in the program.cpp file before calling the core GPU code. 
-* The Solver_gpu.cu file contains the main code of the method. It is written in CUDA and enables the PLBFS to be run on GPUs.
+* The Solver_gpu.cu file contains the main code of the method. It is written in CUDA and enables the PLBFS to be run on GPUs. It calls all the GPU code from the host
+* LBFS.cu contains all code required for LBFS including gradient calculations, flux calculations at face and time integration of cell volumes
+* Immersed Boundary Method.cu contains IBM functions including force spreading, velocity integrations, force calc, and object node time integration
 
 Disclaimer: This repository is very rough and ready in places outside the main CUDA kernels as I've been working on this as a solo developer. I will put an effort into refactoring some aspects of the code base if an interest is displayed.
