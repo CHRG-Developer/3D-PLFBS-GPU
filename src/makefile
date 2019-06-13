@@ -22,8 +22,8 @@ NVCC          := $(CUDA_PATH)/bin/nvcc
 ################################################################################
 
 # Gencode arguments
-SMS ?=  30 32 35 50 60 61 70 75
-
+#SMS ?=   32 35 50 60 61 70 75
+SMS ?=   35
 ifeq ($(SMS),)
 $(info >>> WARNING - no SM architectures have been specified - waiving sample <<<)
 SAMPLE_ENABLED := 0
@@ -44,7 +44,7 @@ endif
 ifeq ($(SAMPLE_ENABLED),0)
 EXEC ?= @echo "[@]"
 endif
-#GENCODE_FLAGS += -v --ptxas-options=-v 
+# GENCODE_FLAGS += -v --ptxas-options=-v 
 GENCODE_FLAGS += -maxrregcount=128
 
 ################################################################################
@@ -53,17 +53,17 @@ CC	= g++
 src	= $(wildcard *.cpp *.cu)
 src1= $(src:.cpp=.o)
 obj	= $(src1:.cu=.o)
-# -O3 -I/home/brendan/CGNS/CGNS-3.3.1/src /home/brendan/CGNS/CGNS-3.3.1/src/lib/libcgns.a 
-#-g -O3
-CCFLAGS	= -std=c++11 -I/home/Dropbox/PhD/Code/3DLBFS/build/ -I/usr/include/ -I/home/brendan/boost/include/ -I/home/brendan/tecio/teciosrc/ -I/usr/local/cuda-10.1/include/ -I/usr/local/cuda-10.1/samples/common/inc
+#  -I/home/brendan/CGNS/CGNS-3.3.1/src /home/brendan/CGNS/CGNS-3.3.1/src/lib/libcgns.a 
+#-g -O3 
+CCFLAGS	= -g -pg -std=c++11 -I/home/Dropbox/PhD/Code/3DLBFS/build/ -I/usr/include/ -I/home/brendan/boost/include/ -I/home/brendan/tecio/teciosrc/ -I/usr/local/cuda-10.1/include/ -I/usr/local/cuda-10.1/samples/common/inc
 LDFLAGS	= /home/brendan/boost/lib/libboost_system.a /home/brendan/boost/lib/libboost_filesystem.a  /home/brendan/tecio/teciosrc/libtecio.a  -L/usr/bin/ld/ -lpthread -L/usr/local/cuda-10.1/lib64/ -lcuda -lcudart 
-#debug symbols-g -G -lineinfo -g -G 
-NVCCFLAGS = -lineinfo -std=c++11 -O3 -c -I/home/brendan/boost/include/ -I/usr/local/cuda-10.1/samples/common/inc
+#debug symbols-g -G -lineinfo
+NVCCFLAGS = -lineinfo -std=c++11 -O3 -dc -I/home/brendan/boost/include/ -I/usr/local/cuda-10.1/samples/common/inc
 
 
 myprog: $(obj)
-	 $(CC) -o $@ $^ $(LDFLAGS) 
-	
+#	 $(CC) -o $@ $^ $(LDFLAGS) 
+	 $(NVCC) --gpu-architecture=sm_75 -o $@ $^ $(LDFLAGS) 
 
 %.o : %.cpp
 	$(CC) $(CCFLAGS) -o $@ -c $<

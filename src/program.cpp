@@ -22,6 +22,7 @@
 #include "post_processing.h"
 #include "unstructured_bcs.h"
 #include "Solver_gpu.h"
+#include "lagrangian_object.h"
 
 namespace fs = boost::filesystem;
 
@@ -45,6 +46,8 @@ void program::run(char* xml_input){
     domain_geometry domain;
     initial_conditions initial_conds;
 	gpu_solver gpu;
+	std::vector< lagrangian_object> lagrangian_object_vec;
+
      Solver solve;
     int mg =0; // first multigrid cycle
     int fmg =0; // first full multigrid cycle
@@ -56,15 +59,23 @@ void program::run(char* xml_input){
 
     //postprocessor post_processor;
 	std::cout << "Initialising Globals" << endl;
-    pre_processor.initialise_program_variables(xml_input, globals, domain,initial_conds,bcs,u_bcs);
+    pre_processor.initialise_program_variables(xml_input, globals, domain,initial_conds,bcs,u_bcs, lagrangian_object_vec);
+	tecplot_output<double> tp;
+	
+	
+
 
     copyfile(xml_input,globals.output_file);
 
-    remove_existing_files(globals); 
+    remove_existing_files(globals);
+
+	lagrangian_object_vec[0].initialise(globals.PI);
+
+	tp.tecplot_output_lagrangian_object(lagrangian_object_vec[0], globals, domain,0.0);
+
     Solution soln;
     Solution residual;
 	std::cout << "Importing Mesh" << endl;
-	//unstructured mesh
      if(globals.mesh_type ==3){
         unstructured_mesh uns_mesh(domain,globals);
         Boundary_Conditions bc(uns_mesh.get_num_bc());
@@ -82,20 +93,20 @@ void program::run(char* xml_input){
         if(globals.restart_analysis == "true"){
             soln.import(globals);
 
-        }else{ //user defined initial solution
+        }else{
                 soln.assign_pressure_gradient(initial_conds.rho_gradient,initial_conds.origin_loc,
                                         initial_conds.rho_origin_mag,uns_mesh,globals);
                 soln.assign_velocity_gradient(initial_conds.vel_gradient,initial_conds.origin_loc,
                                         initial_conds.vel_origin_mag,uns_mesh,globals);
                 soln.set_average_rho(initial_conds.average_rho);
-	    }
-		//implement boundary conditions
+
+        }
 
         bc.assign_boundary_conditions(uns_mesh,u_bcs);
 		std::cout << "Running Solver" << endl;
 		if (globals.gpu_solver == 1) {
 			gpu.General_Purpose_Solver_mk_i(uns_mesh, soln, bc, source_term, globals, domain, initial_conds, u_bcs,
-				mg, residual, fmg, post_processor);
+				mg, residual, fmg, post_processor, lagrangian_object_vec);
 
 		}else {
 			solve.General_Purpose_Solver_mk_i(uns_mesh,soln,bc,source_term,globals,domain,initial_conds,u_bcs,
@@ -103,6 +114,7 @@ void program::run(char* xml_input){
 
 		}
         
+
         soln.output(globals.output_file, globals, domain);
     //soln.output_centrelines(globals.output_file,globals,mesh);
     //post_processor.output_vtk_mesh(globals.output_file,globals,domain);
@@ -142,6 +154,9 @@ void program::remove_existing_files(global_variables &globals){
 
     temp = output_location + "/plt/grid";
     remove_directory_files(temp);
+
+	temp = output_location + "/plt/object";
+	remove_directory_files(temp);
 
     }
 

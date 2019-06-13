@@ -21,7 +21,7 @@ void global_variables::initialise(domain_geometry domain,initial_conditions init
     //tau = 0.5 + viscosity / dt/ gamma
     // viscosity = MA/root(3) /Re
      std::ostringstream s;
-     visc =  max_velocity * domain.Y/reynolds_number;
+     visc =  max_velocity * domain.ref_length/reynolds_number;
 
      tau = 3*visc/domain.dt + 0.5;  // non-dimensional dt is 1 here
 //    tau = 0.5 + initial_conds.average_rho*max_velocity*3/reynolds_number *
@@ -83,9 +83,9 @@ void global_variables::reduce_time_step( ){
 }
 std::string global_variables::create_output_directory(){
 
-    std::string output_file,plt,ux,vy,max_u;
+    std::string output_file,plt,ux,vy,max_u, object;
     std::string folder;
-    std::ostringstream s ,s1,s2,s3,s4;
+    std::ostringstream s ,s1,s2,s3,s4,s5;
     //output_file = "C:/Users/brendan/Dropbox/PhD/Test Cases/Poiseuille Flow/";
 
     output_file = output_file_dir;
@@ -115,6 +115,11 @@ std::string global_variables::create_output_directory(){
     plt = output_file + s1.str();
     boost::filesystem::path dir1(plt);
     boost::filesystem::create_directories(dir1);
+
+	s5<< "/plt/object";
+	object = output_file + s5.str();
+	boost::filesystem::path dir5(object);
+	boost::filesystem::create_directories(dir5);
 
     s1 << "/grid";
     plt = output_file + s1.str();

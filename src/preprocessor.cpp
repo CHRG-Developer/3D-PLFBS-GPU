@@ -9,6 +9,7 @@
 #include <iostream>
 #include <cstdio>
 #include <algorithm>
+#include "lagrangian_object.h"
 
 using namespace tinyxml2;
 
@@ -25,7 +26,7 @@ preprocessor::~preprocessor()
 
 void preprocessor::initialise_program_variables(char* xmltest, global_variables &globals, domain_geometry &geometry,
                                                 initial_conditions &initial_conds, quad_bcs_plus &bcs,
-                                                unstructured_bcs &u_bcs ) {
+                                                unstructured_bcs &u_bcs, vector<lagrangian_object> &object_vec ) {
 
     XMLDocument xmlDoc;
 
@@ -40,6 +41,8 @@ void preprocessor::initialise_program_variables(char* xmltest, global_variables 
     if (globals.mesh_type == 3){
         parse_uns_boundary_conditions(xmlDoc, u_bcs,globals);
     }
+	parse_lagrangian_objects(xmlDoc, object_vec,globals);
+
 
     mach_number_factor(globals,bcs,initial_conds,geometry);
     geometry.scale_geometries(globals.scale);
@@ -77,6 +80,107 @@ void preprocessor::mach_number_factor( global_variables &globals,quad_bcs_plus &
     initials.velocity.z = initials.velocity.z * factor;
 
 
+
+}
+
+
+void preprocessor::parse_lagrangian_objects(XMLDocument &xmlDoc, std::vector<lagrangian_object> &object_vec, global_variables &globals) {
+
+	XMLError eResult;
+
+	XMLNode * pRoot = xmlDoc.FirstChild();
+	const char * output;
+	std::string temp;
+	std::ostringstream os;
+	int temp_type;
+	if (pRoot == nullptr) return;
+
+
+	double iOutListValue;
+
+	XMLElement * pElement = pRoot->FirstChildElement("lagrangian_objects");
+	if (pElement == nullptr) return;
+
+	XMLElement * pListElement = pElement->FirstChildElement("object");
+	XMLElement * pbcElement;
+	lagrangian_object temp_obj;
+
+	while (pListElement != nullptr)
+	{
+		
+		pbcElement = pListElement->FirstChildElement("name");
+		if (pbcElement == nullptr) return;
+		os << pbcElement->GetText();
+		temp_obj.name = os.str();
+
+		os.str(std::string());
+		os.clear();
+
+
+		pbcElement = pListElement->FirstChildElement("num_nodes");
+		eResult = pbcElement->QueryDoubleText(&iOutListValue);
+		temp_obj.num_nodes = iOutListValue;
+
+		pbcElement = pListElement->FirstChildElement("radius");
+		eResult = pbcElement->QueryDoubleText(&iOutListValue);
+		temp_obj.radius = iOutListValue;
+
+		pbcElement = pListElement->FirstChildElement("depth");
+		eResult = pbcElement->QueryDoubleText(&iOutListValue);
+		temp_obj.depth = iOutListValue;
+
+		pbcElement = pListElement->FirstChildElement("stiffness");
+		eResult = pbcElement->QueryDoubleText(&iOutListValue);
+		temp_obj.stiffness = iOutListValue;
+		
+		pbcElement = pListElement->FirstChildElement("centre_x");
+		eResult = pbcElement->QueryDoubleText(&iOutListValue);
+		temp_obj.centre_x = iOutListValue;
+
+		pbcElement = pListElement->FirstChildElement("centre_y");
+		eResult = pbcElement->QueryDoubleText(&iOutListValue);
+		temp_obj.centre_y = iOutListValue;
+
+		pbcElement = pListElement->FirstChildElement("centre_z");
+		eResult = pbcElement->QueryDoubleText(&iOutListValue);
+		temp_obj.centre_z = iOutListValue;
+		
+		pbcElement = pListElement->FirstChildElement("type");
+		os << pbcElement->GetText();
+
+		temp = os.str();
+		if (temp.compare("rigid_cylinder") == 0) {
+			temp_obj.type = 1;
+		}else if (temp.compare("spring_network") == 0) {
+			temp_obj.type = 2;
+		}
+		else  {
+			temp_obj.type = 0;
+		}
+
+		os.clear();
+		os.str(std::string());
+
+		//get mesh file of spring network		
+
+		pbcElement = pListElement->FirstChildElement("mesh_file");
+		if (pbcElement == nullptr) {
+
+		}else {
+			os << pbcElement->GetText();
+			temp_obj.mesh_file = os.str();
+
+		
+		}
+
+		temp_obj.initialise(globals.PI);
+
+		object_vec.push_back(temp_obj);
+
+		//loop to next lagnrangian object condition
+		pListElement = pListElement->NextSiblingElement("object");
+
+	}
 
 }
 
@@ -151,6 +255,9 @@ void preprocessor::parse_uns_boundary_conditions(XMLDocument &xmlDoc, unstructur
                 }else if ( temp.compare("symmetry-x") == 0){
                     temp_type = 8;
                 }
+				else if (temp.compare("parabolic") == 0) {
+					temp_type = 9;
+				}
 
                 bcs.vel_type.push_back(temp_type);
                 os.clear();
@@ -218,6 +325,9 @@ void preprocessor::parse_boundary_conditions(XMLDocument &xmlDoc, quad_bcs_plus 
     }else if ( temp.compare("parabolic-W") == 0){
         bcs.w_type_vel = 5;
     }
+	else if (temp.compare("parabolic") == 0) {
+		bcs.w_type_vel = 6;
+	}
 
 
 
@@ -361,6 +471,10 @@ void preprocessor::parse_geometry_variables(XMLDocument &xmlDoc, domain_geometry
     geometry.dy = get_xml_double(parent, "dy", xmlDoc);
     geometry.dz = get_xml_double(parent, "dz", xmlDoc);
     geometry.dt= get_xml_double(parent, "streaming_dt", xmlDoc);
+	geometry.origin_x = get_xml_double(parent, "origin_x", xmlDoc);
+	geometry.origin_y = get_xml_double(parent, "origin_y", xmlDoc);
+	geometry.origin_z = get_xml_double(parent, "origin_z", xmlDoc);
+	geometry.ref_length = get_xml_double(parent, "ref_length", xmlDoc);
 
     geometry.initialise();
 

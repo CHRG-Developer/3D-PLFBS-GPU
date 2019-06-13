@@ -6,6 +6,8 @@
 #include "initial_conditions.h"
 #include "quad_bcs_plus.h"
 #include "unstructured_bcs.h"
+#include <vector>
+#include "lagrangian_object.h"
 
 using namespace tinyxml2;
 
@@ -16,7 +18,7 @@ class preprocessor
         virtual ~preprocessor();
         void initialise_program_variables(char* xml_input, global_variables &globals,
                                           domain_geometry &geometry,initial_conditions &initial_conds,
-                                           quad_bcs_plus &bcs,unstructured_bcs &u_bcs  );
+                                           quad_bcs_plus &bcs,unstructured_bcs &u_bcs, std::vector <lagrangian_object> &object_vec  );
 
     protected:
     private:
@@ -24,6 +26,7 @@ class preprocessor
         void parse_geometry_variables(XMLDocument &xmlDoc, domain_geometry &geometry);
         void parse_initial_conditions(XMLDocument &xmlDoc, initial_conditions &initials);
         void parse_boundary_conditions(XMLDocument &xmlDoc, quad_bcs_plus &bcs);
+		void parse_lagrangian_objects(XMLDocument &xmlDoc, std::vector <lagrangian_object> &object_vec, global_variables &globals);
 
         double get_xml_double(const char* parent, const char* child, XMLDocument &doc);
         double get_xml_double(const char* parent, const char* child, const char* child2,

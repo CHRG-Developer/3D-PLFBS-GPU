@@ -12,6 +12,7 @@
 #include "gradients.h"
 #include "cuda.h"
 #include "cuda_runtime.h"
+#include "lagrangian_object.h"
 
 #ifndef gpu_solver_H
 #define gpu_solver_H
@@ -23,10 +24,14 @@ class gpu_solver
 public:
 	gpu_solver();
 	virtual ~gpu_solver();
-		void General_Purpose_Solver(unstructured_mesh &Mesh, Solution &soln, Boundary_Conditions &bc,
+
+	void General_Purpose_Solver_mk_i(unstructured_mesh &Mesh, Solution &soln, Boundary_Conditions &bc,
 		external_forces &source, global_variables &globals, domain_geometry &domain,
 		initial_conditions &init_conds, unstructured_bcs &quad_bcs_orig, int mg,
-		Solution &residual, int fmg, post_processing &pp);
+		Solution &residual, int fmg, post_processing &pp, std::vector<lagrangian_object> &object_vec);
+
+
+
 	void populate_e_alpha(std::vector<vector_var> &e_alpha, double * lattice_weight, double c, double PI, int k);
 	void inverse_weighted_distance_interpolation(double &u, double &v, double &rho, Boundary_Conditions &bcs,
 		Mesh &Mesh, domain_geometry &domain, Solution &soln
@@ -34,6 +39,9 @@ public:
 		std::vector<vector_var> &e_alpha, int j, std::vector<int> &cell_nodes);
 	void get_cell_nodes(std::vector<int> &cell_nodes, Boundary_Conditions &bcs, int neighbour,
 		Mesh &Mesh, int i, int j);
+	
+	
+
 	void find_real_time(double* delta_t_local, double* local_time, bool* calc_face,
 		unstructured_mesh &Mesh, bool* calc_cell);
 
@@ -73,6 +81,12 @@ private:
 	};
 
 
+
+	void truncate_flux(flux_var &flux);
+	void truncate_flux(double &val);
+
+	void get_gradients_weighted_average(gradients &grads, int i, int neighbour, double m1,
+		double m2, vector_var &u, vector_var &v, vector_var &w, vector_var &rho);
 
 	void cell_interface_initialiser(double &rho_interface, vector_var &rho_u_interface,
 		flux_var &x_flux, flux_var &y_flux);
@@ -119,6 +133,8 @@ private:
 	template <typename T>
 	void bcs_to_array_double(T* target, Boundary_Conditions &bcs, int total_nodes, std::string name);
 
+
+	void lagrangian_object_to_array(std::vector<lagrangian_object> &obj_vec,  double* &x_ref, double* &y_ref, double* &z_ref, double* &x, double* &y, double* & z, double* &x0, double* &y0, double* & z0, int * & tet_connectivity);
 	
 };
 

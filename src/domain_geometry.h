@@ -8,6 +8,7 @@ class domain_geometry
         domain_geometry();
         virtual ~domain_geometry();
         double X,Y,Z,dx,dy,dz;
+		double ref_length, origin_x, origin_y, origin_z;
         double dt ;  // streaming time step
         double cs; // speed of sound in medium
         void initialise();

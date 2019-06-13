@@ -5,6 +5,7 @@
 #include "Solution.h"
 #include "Boundary_Conditions.h"
 #include "post_processing.h"
+#include "lagrangian_object.h"
 
 template <typename T>
 class tecplot_output
@@ -19,7 +20,9 @@ class tecplot_output
                              Boundary_Conditions &bcs,  double timestamp,
                              post_processing &pp, Solution &residual, double * local_delta_t, T * local_fneq);
         virtual ~tecplot_output();
-
+		void tecplot_output_lagrangian_object(lagrangian_object &object, global_variables &globals, domain_geometry &geometry,double timestamp);
+		void tecplot_output_lagrangian_object_gpu(double * vel_x, double * vel_y, double * vel_z, double * x, double * y, double * z, double * force_x, double * force_y, double * force_z,
+			global_variables &globals, domain_geometry &geometry, double timestamp, std::string obj_name, int obj_nodes, int depth_nodes, int radial_nodes);
     protected:
 
     private:

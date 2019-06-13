@@ -2105,9 +2105,9 @@ void unstructured_mesh::tecplot_output_polyhedral_unstructured_grid(global_varia
 
     for (k = 0; k < n_vertices; k++){
 
-          nodx[t] = (float)(x[t])/X;
-          nody[t] = (float)(y[t])/Y;
-          nodz[t] = (float)(z[t])/Z;
+          nodx[t] = (float)(x[t]);
+          nody[t] = (float)(y[t]);
+          nodz[t] = (float)(z[t]);
 
           globals_txt << t << "," << nodx[t] << ","<< nody[t] << ","<< nodz[t] << std::endl;
           t++;
@@ -2251,8 +2251,8 @@ void unstructured_mesh::tecplot_output_unstructured_grid(global_variables &globa
     }
 
     debug     = 1;
-    vIsDouble = 0;
-    dIsDouble = 0;
+    vIsDouble = 1;
+    dIsDouble = 1;
     nNodes = n_vertices;
     nCells =  n_cells;
     nFaces = 6; /* Not used */
